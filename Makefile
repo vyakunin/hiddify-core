@@ -12,6 +12,12 @@ Not available for Windows! use bash in WSL
 endif
 CRONET_GO_VERSION := $(shell cat hiddify-sing-box/.github/CRONET_GO_VERSION)
 TAGS=with_gvisor,with_quic,with_wireguard,with_utls,with_clash_api,with_grpc,with_awg,tfogo_checklinkname0,with_naive_outbound,with_conntrack
+# family_vpn-slim build: only VLESS+REALITY. Drop the protocol tags this
+# fork's distribution never uses. Keep with_gvisor (TUN), with_utls
+# (REALITY uses uTLS), with_clash_api / with_grpc / with_conntrack (libbox
+# FFI internals — dropping these has caused crashes in past experiments,
+# so keep them as a safe minimum) and the tfogo linker workaround.
+SLIM_TAGS=with_gvisor,with_utls,with_clash_api,with_grpc,with_conntrack,tfogo_checklinkname0
 IOS_ADD_TAGS=with_dhcp,with_low_memory,with_purego
 MACOS_ADD_TAGS=with_dhcp
 WINDOWS_ADD_TAGS=with_purego
@@ -46,6 +52,15 @@ headers:
 
 android: lib_install
 	CGO_LDFLAGS="-O2 -g -s -w -Wl,-z,max-page-size=16384" gomobile bind -v -androidapi=21 -javapkg=com.hiddify.core -libname=hiddify-core -tags=$(TAGS) -trimpath -ldflags="$(LDFLAGS)" -target=android -gcflags "all=-N -l" -o $(BINDIR)/$(LIBNAME).aar github.com/sagernet/sing-box/experimental/libbox ./platform/mobile
+
+# family_vpn-slim build: trim build tags + drop the debug -gcflags "all=-N -l"
+# (no optimization + no inlining) that upstream ships. -gcflags alone tends to
+# shrink the native lib substantially because Go inlines a lot. Combined with
+# the slimmed tag set, the arm64 .so should drop from ~78 MB to roughly half.
+# Output target: same hiddify-core.aar — Hiddify-Next's android/app/build.gradle
+# does not care which build produced it.
+android-slim: lib_install
+	CGO_LDFLAGS="-O2 -g -s -w -Wl,-z,max-page-size=16384" gomobile bind -v -androidapi=21 -javapkg=com.hiddify.core -libname=hiddify-core -tags=$(SLIM_TAGS) -trimpath -ldflags="$(LDFLAGS)" -target=android/arm64 -o $(BINDIR)/$(LIBNAME).aar github.com/sagernet/sing-box/experimental/libbox ./platform/mobile
 
 ios-full: lib_install
 	gomobile bind -v  -target ios,iossimulator,tvos,tvossimulator,macos -libname=hiddify-core -tags=$(TAGS),$(IOS_ADD_TAGS) -trimpath -ldflags="$(LDFLAGS)" -o $(BINDIR)/$(PRODUCT_NAME).xcframework github.com/sagernet/sing-box/experimental/libbox ./platform/mobile 

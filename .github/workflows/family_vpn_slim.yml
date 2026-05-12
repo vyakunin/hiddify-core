@@ -1,0 +1,81 @@
+name: family_vpn slim Android AAR
+
+# Builds an arm64-only Android AAR with stripped sing-box build tags and
+# without the upstream debug -gcflags. Published as a GitHub release on
+# this fork; the family_vpn_client Makefile points at the latest tag.
+#
+# Trigger: workflow_dispatch with a tag like v4.1.0-slim.1.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (e.g. v4.1.0-slim.1)"
+        type: string
+        required: true
+
+jobs:
+  build-android-slim:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: 17
+
+      - name: Setup Android NDK
+        id: setup-ndk
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r28
+
+      - name: Install gomobile
+        run: |
+          go install -v github.com/sagernet/gomobile/cmd/gomobile@v0.1.11
+          go install -v github.com/sagernet/gomobile/cmd/gobind@v0.1.11
+          # Echo paths
+          which gomobile gobind || (ls "$(go env GOPATH)/bin"; export PATH="$PATH:$(go env GOPATH)/bin")
+
+      - name: Build slim AAR
+        env:
+          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+          ANDROID_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}/../..
+        run: |
+          export PATH="$PATH:$(go env GOPATH)/bin"
+          make android-slim
+          ls -la bin/
+
+      - name: Package as tarball (matches upstream layout)
+        run: |
+          cd bin
+          tar czf hiddify-lib-android.tar.gz hiddify-core.aar
+          ls -la hiddify-lib-android.tar.gz
+          # report size of each ABI .so for the build summary
+          unzip -p hiddify-core.aar /dev/stdin > /dev/null 2>&1 || true
+          unzip -l hiddify-core.aar | grep "\.so$" || true
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ inputs.tag }}" \
+            bin/hiddify-lib-android.tar.gz \
+            bin/hiddify-core.aar \
+            --title "family_vpn slim build ${{ inputs.tag }}" \
+            --notes "Stripped sing-box build tags; arm64-only; debug -gcflags removed."

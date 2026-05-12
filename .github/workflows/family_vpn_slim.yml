@@ -39,6 +39,9 @@ jobs:
           distribution: zulu
           java-version: 17
 
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
       - name: Setup Android NDK
         id: setup-ndk
         uses: nttld/setup-ndk@v1
@@ -49,15 +52,18 @@ jobs:
         run: |
           go install -v github.com/sagernet/gomobile/cmd/gomobile@v0.1.11
           go install -v github.com/sagernet/gomobile/cmd/gobind@v0.1.11
-          # Echo paths
           which gomobile gobind || (ls "$(go env GOPATH)/bin"; export PATH="$PATH:$(go env GOPATH)/bin")
 
       - name: Build slim AAR
         env:
           ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
-          ANDROID_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}/../..
+          # ANDROID_HOME / ANDROID_SDK_ROOT are populated by setup-android above;
+          # gomobile needs them in addition to NDK for the platforms/ dir.
         run: |
           export PATH="$PATH:$(go env GOPATH)/bin"
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          echo "ANDROID_NDK_HOME=$ANDROID_NDK_HOME"
+          ls "$ANDROID_HOME/platforms/" || true
           make android-slim
           ls -la bin/
 

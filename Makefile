@@ -17,7 +17,7 @@ TAGS=with_gvisor,with_quic,with_wireguard,with_utls,with_clash_api,with_grpc,wit
 # (REALITY uses uTLS), with_clash_api / with_grpc / with_conntrack (libbox
 # FFI internals — dropping these has caused crashes in past experiments,
 # so keep them as a safe minimum) and the tfogo linker workaround.
-SLIM_TAGS=with_gvisor,with_utls,with_clash_api,with_grpc,with_conntrack,tfogo_checklinkname0
+SLIM_TAGS=with_gvisor,with_utls,with_conntrack,tfogo_checklinkname0
 IOS_ADD_TAGS=with_dhcp,with_low_memory,with_purego
 MACOS_ADD_TAGS=with_dhcp
 WINDOWS_ADD_TAGS=with_purego

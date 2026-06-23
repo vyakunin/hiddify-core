@@ -59,8 +59,18 @@ android: lib_install
 # the slimmed tag set, the arm64 .so should drop from ~78 MB to roughly half.
 # Output target: same hiddify-core.aar — Hiddify-Next's android/app/build.gradle
 # does not care which build produced it.
+#
+# MULTI-ABI (arm64-v8a + armeabi-v7a): the family_vpn client AAB is built
+# --target-platform=android-arm,android-arm64 because Roza's realme C30 (Android
+# 11 Go edition, Unisoc T612) reports a 32-bit primary ABI and Play serves it the
+# armeabi-v7a split. An arm64-only core meant that split shipped WITHOUT
+# libhiddify-core.so → go.Seq.<clinit> UnsatisfiedLinkError on launch (the 40120
+# "multi-ABI" fix only made Flutter multi-ABI, never the core). Building both ABIs
+# here puts the slim core in BOTH splits; AAB per-ABI splitting means arm64 users
+# still download only the arm64 .so (no size regression). DO NOT revert to
+# -target=android/arm64 alone — that re-breaks every 32-bit relative.
 android-slim: lib_install
-	CGO_LDFLAGS="-O2 -g -s -w -Wl,-z,max-page-size=16384" gomobile bind -v -androidapi=21 -javapkg=com.hiddify.core -libname=hiddify-core -tags=$(SLIM_TAGS) -trimpath -ldflags="$(LDFLAGS)" -target=android/arm64 -o $(BINDIR)/$(LIBNAME).aar github.com/sagernet/sing-box/experimental/libbox ./platform/mobile
+	CGO_LDFLAGS="-O2 -g -s -w -Wl,-z,max-page-size=16384" gomobile bind -v -androidapi=21 -javapkg=com.hiddify.core -libname=hiddify-core -tags=$(SLIM_TAGS) -trimpath -ldflags="$(LDFLAGS)" -target=android/arm,android/arm64 -o $(BINDIR)/$(LIBNAME).aar github.com/sagernet/sing-box/experimental/libbox ./platform/mobile
 
 ios-full: lib_install
 	gomobile bind -v  -target ios,iossimulator,tvos,tvossimulator,macos -libname=hiddify-core -tags=$(TAGS),$(IOS_ADD_TAGS) -trimpath -ldflags="$(LDFLAGS)" -o $(BINDIR)/$(PRODUCT_NAME).xcframework github.com/sagernet/sing-box/experimental/libbox ./platform/mobile 

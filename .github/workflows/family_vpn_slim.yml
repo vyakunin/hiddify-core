@@ -1,8 +1,10 @@
 name: family_vpn slim Android AAR
 
-# Builds an arm64-only Android AAR with stripped sing-box build tags and
-# without the upstream debug -gcflags. Published as a GitHub release on
-# this fork; the family_vpn_client Makefile points at the latest tag.
+# Builds a multi-ABI (arm64-v8a + armeabi-v7a) Android AAR with stripped
+# sing-box build tags and without the upstream debug -gcflags. Published as a
+# GitHub release on this fork; the family_vpn_client Makefile points at the tag.
+# v7a is required for 32-bit relatives (Roza's realme C30 Go edition) — see the
+# android-slim target comment in the Makefile.
 #
 # Trigger: workflow_dispatch with a tag like v4.1.0-slim.1.
 
@@ -84,4 +86,4 @@ jobs:
             bin/hiddify-lib-android.tar.gz \
             bin/hiddify-core.aar \
             --title "family_vpn slim build ${{ inputs.tag }}" \
-            --notes "Stripped sing-box build tags; arm64-only; debug -gcflags removed."
+            --notes "Stripped sing-box build tags; multi-ABI (arm64-v8a + armeabi-v7a); debug -gcflags removed."

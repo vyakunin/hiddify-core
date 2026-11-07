@@ -1,10 +1,10 @@
 name: family_vpn slim Android AAR
 
-# Builds a multi-ABI (arm64-v8a + armeabi-v7a) Android AAR with stripped
+# Builds a multi-ABI (arm64-v8a + armeabi-v7a + x86_64) Android AAR with stripped
 # sing-box build tags and without the upstream debug -gcflags. Published as a
 # GitHub release on this fork; the family_vpn_client Makefile points at the tag.
 # v7a is required for 32-bit relatives (Roza's realme C30 Go edition) — see the
-# android-slim target comment in the Makefile.
+# android-slim target comment in the Makefile. x86_64 serves Intel/AMD Chromebooks.
 #
 # Trigger: workflow_dispatch with a tag like v4.1.0-slim.1.
 
@@ -69,6 +69,19 @@ jobs:
           make android-slim
           ls -la bin/
 
+      - name: Check every ABI carries a full core
+        run: |
+          set -e
+          work=$(mktemp -d)
+          unzip -q bin/hiddify-core.aar -d "$work"
+          for abi in arm64-v8a armeabi-v7a x86_64; do
+            so="$work/jni/$abi/libhiddify-core.so"
+            [ -s "$so" ] || { echo "missing $so"; exit 1; }
+            # This string exists only in a build without with_clash_api (the 40126 break).
+            if strings "$so" | grep -q "clash api is not included"; then echo "$abi: no clash api"; exit 1; fi
+            echo "$abi ok ($(du -h "$so" | cut -f1))"
+          done
+
       - name: Package as tarball (matches upstream layout)
         run: |
           cd bin
@@ -86,4 +99,4 @@ jobs:
             bin/hiddify-lib-android.tar.gz \
             bin/hiddify-core.aar \
             --title "family_vpn slim build ${{ inputs.tag }}" \
-            --notes "Stripped sing-box build tags; multi-ABI (arm64-v8a + armeabi-v7a); debug -gcflags removed."
+            --notes "Stripped sing-box build tags; multi-ABI (arm64-v8a + armeabi-v7a + x86_64); debug -gcflags removed."

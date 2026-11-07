@@ -69,8 +69,10 @@ android: lib_install
 # here puts the slim core in BOTH splits; AAB per-ABI splitting means arm64 users
 # still download only the arm64 .so (no size regression). DO NOT revert to
 # -target=android/arm64 alone — that re-breaks every 32-bit relative.
+# x86_64 (android/amd64) serves Intel/AMD Chromebooks, which run the Play app under
+# ARC and get the x86_64 split; without it they launch with no core at all.
 android-slim: lib_install
-	CGO_LDFLAGS="-O2 -g -s -w -Wl,-z,max-page-size=16384" gomobile bind -v -androidapi=21 -javapkg=com.hiddify.core -libname=hiddify-core -tags=$(SLIM_TAGS) -trimpath -ldflags="$(LDFLAGS)" -target=android/arm,android/arm64 -o $(BINDIR)/$(LIBNAME).aar github.com/sagernet/sing-box/experimental/libbox ./platform/mobile
+	CGO_LDFLAGS="-O2 -g -s -w -Wl,-z,max-page-size=16384" gomobile bind -v -androidapi=21 -javapkg=com.hiddify.core -libname=hiddify-core -tags=$(SLIM_TAGS) -trimpath -ldflags="$(LDFLAGS)" -target=android/arm,android/arm64,android/amd64 -o $(BINDIR)/$(LIBNAME).aar github.com/sagernet/sing-box/experimental/libbox ./platform/mobile
 
 ios-full: lib_install
 	gomobile bind -v  -target ios,iossimulator,tvos,tvossimulator,macos -libname=hiddify-core -tags=$(TAGS),$(IOS_ADD_TAGS) -trimpath -ldflags="$(LDFLAGS)" -o $(BINDIR)/$(PRODUCT_NAME).xcframework github.com/sagernet/sing-box/experimental/libbox ./platform/mobile 
